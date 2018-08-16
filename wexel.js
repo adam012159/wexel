@@ -4,6 +4,7 @@ const fs = require('fs');
 const client = new Discord.Client();
 const config = require("./config.json");
 const version = require("./version.json");
+const talkedRecently = new Set();
 
 client.login(config.token);
 
@@ -43,7 +44,7 @@ function createstat(b) {
     return filebuff;
 }
 function createserver(b) {
-    let filebuff = { version: `${version.version}`, servername: `${b}`, prefix: "#", admins: " "};
+    let filebuff = { version: `${version.version}`, servername: `${b}`, prefix: "#", admins: " ", spamdelay: 1000};
     console.log(colors.blue(`Creating server file for ${b}...`));
     console.log(filebuff);
     filebuff = JSON.stringify(filebuff);
@@ -58,13 +59,17 @@ function statupdate(b, c, path) {
     return newfile;
 }
 function updateserver(oldfile, server) {
-    let newfile = { version: `${version.version}`, servername: `${server}`, prefix: "#", admins: " "};
+    let newfile = { version: `${version.version}`, servername: `${server}`, prefix: "#", admins: " ", spamdelay: 1000};
     console.log(colors.blue(`Updating stats for ${server}...`));
     if (oldfile.version === "0.0.1") {
         newfile.prefix = oldfile.symbol;
     }
     if (oldfile.version === "0.0.1a") {
         newfile.prefix = oldfile.prefix;
+    }
+    if (oldfile.version === "0.0.2") {
+        newfile.prefix = oldfile.prefix;
+        newfile.admins = oldfile.admins;
     }
     newfile = JSON.stringify(newfile);
     fs.writeFileSync(`servers/${server}.json`, newfile);
@@ -100,6 +105,10 @@ client.on("message", (message) => {
                 let strarray = message.content.split(" ");
                 strarray = strarray[1];
                 strarray = strarray.charAt();
+                if (strarray === undefined) {
+                    message.channel.send("You must specify a symbol to use as a prefix.");
+                    return;
+                }
                 let badsym = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
                 if (badsym.includes(strarray)) {
                     message.channel.send("You cannot set an alphanumeric character as the prefix, please use a symbol");
@@ -134,6 +143,31 @@ client.on("message", (message) => {
                 write(settings, server, "servers");
                 return;
             }
+            if (message.content.includes("setspamcooldown")) {
+                let strarray = message.content.split(" ");
+                strarray = strarray[1];
+                if (strarray === undefined) {
+                    message.channel.send("You must specify a time in milliseconds to use as a cooldown.");
+                    return;
+                }
+                if (isNaN(strarray)) {
+                    message.channel.send(`${strarray} is not a number. Please specify a number in milliseconds to use as a cooldown.`);
+                    return;
+                }
+                settings.spamdelay = strarray;
+                console.log(colors.blue(`${message.author.tag} has set ${server}'s spam cooldown to ${settings.spamdelay} ms...`));
+                message.channel.send(`Spam cooldown is now set to ${settings.spamdelay} milliseconds.`);
+                write(settings, server, "servers");
+                return;
+            }
         }
     }
+    if (talkedRecently.has(message.author.id)) {
+        message.delete(50);
+        console.log(colors.cyan(`Deleted message from ${message.author.tag} due to spam...`));
+    }
+    talkedRecently.add(message.author.id);
+    setTimeout(() => {
+        talkedRecently.delete(message.author.id);
+    }, settings.spamdelay);
 });
