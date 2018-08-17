@@ -5,9 +5,14 @@ const client = new Discord.Client();
 const config = require("./config.json");
 const version = require("./version.json");
 const talkedRecently = new Set();
+const talkreseter = new Set();
 
 client.login(config.token);
 
+function removefromtalkedrecently(name) {
+    talkedRecently.delete(name);
+    return;
+}
 function write(a, b, path) {
     a = JSON.stringify(a);
     fs.writeFileSync(`${path}/${b}.json`, a);
@@ -165,9 +170,9 @@ client.on("message", (message) => {
     if (talkedRecently.has(message.author.id)) {
         message.delete(50);
         console.log(colors.cyan(`Deleted message from ${message.author.tag} due to spam...`));
+        clearTimeout(talkreseter[message.author.id]);
+        talkreseter[message.author.id] = setTimeout(removefromtalkedrecently, settings.spamdelay, message.author.id);
     }
     talkedRecently.add(message.author.id);
-    setTimeout(() => {
-        talkedRecently.delete(message.author.id);
-    }, settings.spamdelay);
+    talkreseter[message.author.id] = setTimeout(removefromtalkedrecently, settings.spamdelay, message.author.id);
 });

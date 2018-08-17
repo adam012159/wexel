@@ -2,3 +2,4 @@
 /servers/
 /ecosystem.config.js
 /node_modules/
+/logs/
