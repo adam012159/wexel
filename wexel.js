@@ -6,6 +6,11 @@ const config = require("./config.json");
 const version = require("./version.json");
 const talkedRecently = new Set();
 const talkreseter = new Set();
+var errorlog = " ";
+var outputlog = " ";
+var hours = 0;
+var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+dayTimer = setInterval(runEveryDay, 86400000);
 
 client.login(config.token);
 
@@ -13,9 +18,13 @@ function removefromtalkedrecently(name) {
     talkedRecently.delete(name);
     return;
 }
-function write(a, b, path) {
+function writeJSON(a, b, path) {
     a = JSON.stringify(a);
     fs.writeFileSync(`${path}/${b}.json`, a);
+    return;
+}
+function writeLog(log, fileName, path) {
+    fs.writeFileSync(`${path}/${b}.log`, a);
     return;
 }
 function readstat(a, path) {
@@ -80,12 +89,22 @@ function updateserver(oldfile, server) {
     fs.writeFileSync(`servers/${server}.json`, newfile);
     return newfile;
 }
+function runEveryDay() {
+    hours = hours + 1;
+    if (hours === 24) {
+        let now = new Date();
+        writeLog(errorlog, `Errors ${months[now.getMonth()]}/${now.getDate()}`, "logs");
+        writeLog(outputlog, `Output ${months[now.getMonth()]}/${now.getDate()}`, "logs");
+        hours = 0;
+    }
+}
+
 
 client.on("error", (e) => {
     let now = new Date();
     console.error(colors.red(`${e}`));
     client.channels.get("456482534482509835").send("An error has occured. Please check log for more information.");
-    write(e, `error${now}`, "logs");
+    errorlog = errorlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} ${e} \n`;
 });
 client.on("warn", (e) => console.warn(colors.yellow(`${e}`)));
 client.on("debug", (e) => console.info(colors.green(`${e}`)));
@@ -98,6 +117,7 @@ client.on("ready", () => {
 });
 
 client.on("message", (message) => {
+    let now = new Date();
     if (message.author.bot) return;
     let server = message.guild;
     let settings = readserver(server);
@@ -122,7 +142,8 @@ client.on("message", (message) => {
                 settings.prefix = strarray;
                 message.channel.send(`Wexel prefix is now ${settings.prefix}`);
                 console.log(colors.blue(`Server '${server}'s prefix is now ${settings.prefix}`));
-                write(settings, server, "servers");
+                outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Server '${server}'s prefix is now ${settings.prefix} \n`;
+                writeJSON(settings, server, "servers");
                 return;
             }
             if (message.content.includes("addadmin")) {
@@ -138,14 +159,16 @@ client.on("message", (message) => {
                 if (settings.admins === " ") {
                     settings.admins = newadmin.id;
                     console.log(colors.blue(`Adding new admin ${newadmin.user.tag} to server ${server}...`));
+                    outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Adding new admin ${newadmin.user.tag} to server ${server}... \n`;
                     message.channel.send(`Added ${newadmin.user.tag} to server's Wexel admins...`);
-                    write(settings, server, "servers");
+                    writeJSON(settings, server, "servers");
                     return;
                 }
                 settings.admins = settings.admins + newadmin.id;
                 console.log(colors.blue(`Adding new admin ${newadmin.user.tag} to server ${server}...`));
+                outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Adding new admin ${newadmin.user.tag} to server ${server}... \n`;
                 message.channel.send(`Added ${newadmin.user.tag} to server's Wexel admins...`);
-                write(settings, server, "servers");
+                writeJSON(settings, server, "servers");
                 return;
             }
             if (message.content.includes("setspamcooldown")) {
@@ -161,8 +184,9 @@ client.on("message", (message) => {
                 }
                 settings.spamdelay = strarray;
                 console.log(colors.blue(`${message.author.tag} has set ${server}'s spam cooldown to ${settings.spamdelay} ms...`));
+                outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} ${message.author.tag} has set ${server}'s spam cooldown to ${settings.spamdelay} ms... \n`;
                 message.channel.send(`Spam cooldown is now set to ${settings.spamdelay} milliseconds.`);
-                write(settings, server, "servers");
+                writeJSON(settings, server, "servers");
                 return;
             }
         }
@@ -170,6 +194,7 @@ client.on("message", (message) => {
     if (talkedRecently.has(message.author.id)) {
         message.delete(50);
         console.log(colors.cyan(`Deleted message from ${message.author.tag} due to spam...`));
+        outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Deleted message from ${message.author.tag} due to spam... \n`;
         clearTimeout(talkreseter[message.author.id]);
         talkreseter[message.author.id] = setTimeout(removefromtalkedrecently, settings.spamdelay, message.author.id);
     }
