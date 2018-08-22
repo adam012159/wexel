@@ -113,13 +113,39 @@ function runEveryDay() {
 client.on("error", (e) => {
     let now = new Date();
     console.error(colors.red(`${e}`));
-    errorlog = errorlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} ${e} \n`;
+    errorlog = errorlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Wexel has disconnected from Discord. Trying to reconnect... \n`;
 });
 client.on("warn", (e) => console.warn(colors.yellow(`${e}`)));
 client.on("debug", (e) => console.info(colors.green(`${e}`)));
 
+client.on("reconnecting", () => {
+    let now = new Date();
+    console.error(colors.red("Trying to reconnect to Discord..."));
+    errorlog = errorlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Trying to reconnect... \n`;
+});
+
+client.on("resume", (replayed) => {
+    let now = new Date();
+    console.error(colors.cyan(`Reconnected! Replaying ${replayed} events.`));
+    errorlog = errorlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Reconnected! Replaying ${replayed} events. \n`;
+});
+
 client.on("ready", () => {
     console.log("Wexel is ready.");
+    let numofservers = client.guilds.array();
+    numofservers = numofservers.length;
+    client.user.setActivity(`on ${numofservers} Servers`, { type: 'PLAYING' });
+});
+
+client.on("guildCreate", (guild) => {
+    let numofservers = client.guilds.array();
+    numofservers = numofservers.length;
+    client.user.setActivity(`on ${numofservers} Servers`, { type: 'PLAYING' });
+    guild.owner.send("Thank you for choosing Wexel! To be updated on any changes, please check https://github.com/adam012159/wexel")
+        .catch(console.error);
+});
+
+client.on("guildDelete", () => {
     let numofservers = client.guilds.array();
     numofservers = numofservers.length;
     client.user.setActivity(`on ${numofservers} Servers`, { type: 'PLAYING' });
@@ -175,6 +201,7 @@ client.on("message", (message) => {
                 }
                 settings.admins = settings.admins + newadmin.id;
                 console.log(colors.blue(`Adding new admin ${newadmin.user.tag} to server ${server}...`));
+                newadmin.send(`${message.author.tag} has made given you the ability to use Wexel's admin commands on ${message.guild}! Enjoy`);
                 outputlog = outputlog + `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()} Adding new admin ${newadmin.user.tag} to server ${server}... \n`;
                 message.channel.send(`Added ${newadmin.user.tag} to server's Wexel admins...`);
                 writeJSON(settings, server, "servers");
