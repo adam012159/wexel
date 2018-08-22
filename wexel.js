@@ -205,7 +205,7 @@ client.on("message", (message) => {
                     return;
                 }
                 if (muted.has(`${targetUser.id}${message.guild}`) === false) {
-                    message.channel.send(`${targetUser.tag} is not muted.`);
+                    message.channel.send(`${targetUser.user.tag} is not muted.`);
                     return;
                 }
                 targetUser.send(`You have been unmuted in ${message.guild}`)
